@@ -1,0 +1,171 @@
+﻿to launchURL browser,url,varlogos:logos
+	set global app to browser
+	typetext windowskey,"r"
+	if browser contains "edge" 
+		typetext "msedge"&&url,returnkey
+	else
+		typetext browser&&url,returnkey
+	end if
+	typetext windowskey, upArrow // maximize window on windows
+	
+	assert that ImageFound(20,varlogos)
+end launchURL
+
+to launchPrivateURL browser,url,varlogos:logos
+	set global app to browser
+	typetext windowskey,"r"
+	if browser contains "edge" 
+		typetext "msedge"&& "-inprivate"&&url,returnkey
+	else
+		typetext browser&&"--incognito"&&url,returnkey
+	end if
+	typetext windowskey, upArrow // maximize window on windows
+	
+	assert that ImageFound(20,varlogos)
+end launchPrivateURL
+
+to closeBrowser
+	typetext controlkey,shiftkey,"w"
+	wait 2
+end closeBrowser
+
+to closeApp
+	typetext controlkey,F4
+	wait 2
+end closeApp
+
+to closeTab expectation
+	typetext controlkey,"w"
+	if expectation is not empty
+		navigate[],(expectation)
+	end if 
+end closeTab
+
+to back expectation
+	typetext altkey,leftarrow
+	if expectation is not empty
+		navigate[],(expectation)
+	end if 
+	wait 3
+end back
+
+to PreviousTab expectation
+	typetext Controlkey,pageDown
+	if expectation is not empty
+		navigate[],(expectation)
+	end if 
+	wait 1
+end PreviousTab
+
+to NextTab expectation
+	typetext Controlkey,pageUp
+	if expectation is not empty
+		navigate[],(expectation)
+	end if 
+	wait 1
+end NextTab
+
+to LaunchWinApp path,app,logos
+	set global app to app
+	typetext windowskey,"r"
+	typetext controlkey,"a",deletekey
+	typetext path,returnkey
+	assert that ImageFound(20,image:logos,searchRectangle:(config().SUT.(global app)))
+	typetext windowskey, upArrow // maximize window on windows
+end LaunchWinApp
+
+to AppSwitcher varlogos:logos,app:global app
+	set global app to app
+	typetext altkey, tabkey
+	assert that ImageFound(10,image:varlogos,searchRectangle:(config().SUT.(global app)))
+end AppSwitcher
+
+to scrollTo toFind
+	set the searchRectangle to config().SUT.(global app)
+	// Images 
+	set the remoteWorkInterval to 0.1
+	if file (suiteinfo().imagesFolder&"/"&toFind&".png") exists
+		repeat until imagefound(0,image:toFind) 
+			Log "image"
+			ScrollWheelDown 5
+			wait 1
+			if repeatindex() > 10 then 
+				logerror "Cannot find"&&toFind
+				Exit repeat
+			end if
+		end repeat
+	else
+		// OCR
+		repeat until imagefound(text:toFind,ignoreNewlines:on, ignorespaces:on,waitfor:0) 	
+			ScrollWheelDown 5 
+			wait 1
+			if repeatindex() > 10 then 
+				logerror "Cannot find"&&toFind
+				Exit repeat
+			end if
+		end repeat
+	end if
+	set the remoteWorkInterval to 0.4
+	set the searchRectangle to []
+	return foundimageinfo().imageRectangle 
+end scrollTo
+
+to navigate action,expectation, offset:[0,0]
+	// do something 
+	
+	if action is not empty
+		click the center of scrollTo(action) + offset
+		moveto bottomCenter of the SearchRectangle
+		wait 1
+	end if 
+	// check something
+	if expectation is not empty
+		if file (suiteinfo().imagesFolder&"/"&expectation&".png") exists
+			waitfor global TimeToWaitfor, image:expectation
+		else
+			waitfor global TimeToWaitfor,text:expectation
+		end if 
+		moveto bottomCenter of the SearchRectangle
+	end if 
+	wait 1
+	
+end navigate
+
+to textEntry label, input, offset:(config().dataEntry.textBoxOffset)
+	click CenterLeft of scrollTo(label) + offset
+	wait 0.5
+	typetext controlkey,"a"
+	typetext input
+	wait 0.3
+end textEntry
+
+to hiddenTextEntry label,input:global user,offset:(config().dataEntry.textBoxOffset)
+	click CenterLeft of scrollTo(label) + offset
+	wait 0.5
+	typetext controlkey,"a"
+	typehiddentext GetVaultValue(input)
+	wait 0.3
+end hiddenTextEntry
+
+to checkBox label, offset:(config().dataEntry.checkBoxOffset)
+	click the CenterLeft of scrollTo(label) + offset
+	wait 0.5
+end checkBox
+
+to dropDown label,input, offset:(config().dataEntry.DropBoxOffset),PosMove:(bottomCenter of the SearchRectangle)
+	click the Center of scrollTo(label) + offset
+	wait 0.5
+	click the Center of scrollTo(input)
+	wait 0.3
+	moveto PosMove
+	wait 0.5
+end dropDown
+
+to typeDropDown label,input, offset:(config().dataEntry.DropBoxOffset)
+	click the Center of scrollTo(label) + offset
+	wait 0.5
+	typetext input,returnkey
+	wait 0.3
+	moveto (bottomCenter of the SearchRectangle)
+	wait 0.5
+end typeDropDown
